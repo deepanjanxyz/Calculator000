@@ -1,3 +1,1 @@
-# My Calculator Project
-# Ad-blocker
-# Notepad
+# Elite Memo Pro
