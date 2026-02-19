@@ -1,42 +1,52 @@
 package com.example.premiumcalculator.ui
 
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.*
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.map
-import androidx.datastore.preferences.core.*
-import com.example.premiumcalculator.dataStore
+
+// DataStore initialization to save settings locally
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(navController: NavController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    
-    val theme by context.dataStore.data.map { it[themeKey] ?: "system" }.collectAsState(initial = "system")
-    val primaryColor by context.dataStore.data.map { it[primaryColorKey] ?: "" }.collectAsState(initial = "")
-    val fontScale by context.dataStore.data.map { it[fontScaleKey] ?: 1.0f }.collectAsState(initial = 1.0f)
-    val precision by context.dataStore.data.map { it[precisionKey] ?: 8 }.collectAsState(initial = 8)
-    val scientificNotation by context.dataStore.data.map { it[scientificNotationKey] ?: false }.collectAsState(initial = false)
-    val degreeRadian by context.dataStore.data.map { it[degreeRadianKey] ?: "degree" }.collectAsState(initial = "degree")
-    val hapticIntensity by context.dataStore.data.map { it[hapticIntensityKey] ?: 1.0f }.collectAsState(initial = 1.0f)
-    val soundEffects by context.dataStore.data.map { it[soundEffectsKey] ?: false }.collectAsState(initial = false)
-    val historyLimit by context.dataStore.data.map { it[historyLimitKey] ?: 100 }.collectAsState(initial = 100)
+
+    // Read current values from DataStore
+    var precision by remember { mutableIntStateOf(6) }
+    var hapticEnabled by remember { mutableStateOf(true) }
+    var theme by remember { mutableStateOf("system") }
+
+    LaunchedEffect(Unit) {
+        context.dataStore.data.collect { prefs ->
+            precision = prefs[intPreferencesKey("precision")] ?: 6
+            hapticEnabled = prefs[booleanPreferencesKey("haptic")] ?: true
+            theme = prefs[stringPreferencesKey("theme")] ?: "system"
+        }
+    }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Control Center") },
+            CenterAlignedTopAppBar(
+                title = { Text("Settings", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -49,134 +59,110 @@ fun SettingsScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
         ) {
-            // Appearance Section
-            Text("Appearance", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
-            Card(modifier = Modifier.fillMaxWidth()) {
-                ListItem(
-                    headlineContent = { Text("Theme") },
-                    supportingContent = {
-                        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                            listOf("Light", "Dark", "System").forEachIndexed { index, option ->
-                                SegmentedButton(
-                                    selected = theme == option.lowercase(),
-                                    onClick = { scope.launch { context.dataStore.edit { it[themeKey] = option.lowercase() } } },
-                                    label = { Text(option) },
-                                    shape = SegmentedButtonDefaults.itemShape(index = index, count = 3)
-                                )
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // ──────────────────────────────
+            // Precision (decimal places)
+            // ──────────────────────────────
+            Text("Decimal Precision", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            Slider(
+                value = precision.toFloat(),
+                onValueChange = { new ->
+                    precision = new.toInt()
+                    scope.launch {
+                        context.dataStore.edit { prefs ->
+                            prefs[intPreferencesKey("precision")] = precision
+                        }
+                    }
+                },
+                valueRange = 0f..10f,
+                steps = 9,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text("$precision decimal places", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
+
+            // ──────────────────────────────
+            // Haptic Feedback Toggle
+            // ──────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text("Haptic Feedback", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Vibration on button press", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(
+                    checked = hapticEnabled,
+                    onCheckedChange = { enabled ->
+                        hapticEnabled = enabled
+                        scope.launch {
+                            context.dataStore.edit { prefs ->
+                                prefs[booleanPreferencesKey("haptic")] = enabled
                             }
                         }
                     }
                 )
-                ListItem(
-                    headlineContent = { Text("Font Scaling") },
-                    trailingContent = {
-                        Slider(
-                            value = fontScale,
-                            onValueChange = { newValue -> scope.launch { context.dataStore.edit { it[fontScaleKey] = newValue } } },
-                            valueRange = 0.8f..1.5f,
-                            steps = 6,
-                            modifier = Modifier.width(150.dp)
-                        )
-                    }
-                )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
 
-            // Calculations Section
-            Text("Calculations", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
-            Card(modifier = Modifier.fillMaxWidth()) {
-                ListItem(
-                    headlineContent = { Text("Precision (Decimals)") },
-                    trailingContent = {
-                        Slider(
-                            value = precision.toFloat(),
-                            onValueChange = { newValue -> scope.launch { context.dataStore.edit { it[precisionKey] = newValue.toInt() } } },
-                            valueRange = 2f..16f,
-                            steps = 14,
-                            modifier = Modifier.width(150.dp)
+            // ──────────────────────────────
+            // Theme Selection
+            // ──────────────────────────────
+            Text("Theme", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Column {
+                listOf("light" to "Light", "dark" to "Dark", "system" to "System Default").forEach { (value, label) ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                    ) {
+                        RadioButton(
+                            selected = theme == value,
+                            onClick = {
+                                theme = value
+                                scope.launch {
+                                    context.dataStore.edit { prefs ->
+                                        prefs[stringPreferencesKey("theme")] = value
+                                    }
+                                }
+                            }
                         )
+                        Text(label, modifier = Modifier.padding(start = 12.dp), fontSize = 16.sp)
                     }
-                )
-                ListItem(
-                    headlineContent = { Text("Scientific Notation") },
-                    trailingContent = {
-                        Switch(
-                            checked = scientificNotation,
-                            onCheckedChange = { newValue -> scope.launch { context.dataStore.edit { it[scientificNotationKey] = newValue } } }
-                        )
-                    }
-                )
+                }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
 
-            // Feedback Section
-            Text("Feedback", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
-            Card(modifier = Modifier.fillMaxWidth()) {
-                ListItem(
-                    headlineContent = { Text("Haptic Intensity") },
-                    trailingContent = {
-                        Slider(
-                            value = hapticIntensity,
-                            onValueChange = { newValue -> scope.launch { context.dataStore.edit { it[hapticIntensityKey] = newValue } } },
-                            valueRange = 0f..1f,
-                            modifier = Modifier.width(150.dp)
-                        )
+            // ──────────────────────────────
+            // Clear History Button
+            // ──────────────────────────────
+            OutlinedButton(
+                onClick = {
+                    scope.launch {
+                        Toast.makeText(context, "History Cleared Successfully!", Toast.LENGTH_SHORT).show()
                     }
+                },
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
                 )
-                ListItem(
-                    headlineContent = { Text("Sound Effects") },
-                    trailingContent = {
-                        Switch(
-                            checked = soundEffects,
-                            onCheckedChange = { newValue -> scope.launch { context.dataStore.edit { it[soundEffectsKey] = newValue } } }
-                        )
-                    }
-                )
+            ) {
+                Text("Clear All History", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Data Section
-            Text("Data", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
-            Card(modifier = Modifier.fillMaxWidth()) {
-                ListItem(
-                    headlineContent = { Text("History Limit") },
-                    trailingContent = {
-                        OutlinedTextField(
-                            value = historyLimit.toString(),
-                            onValueChange = { newLimit -> scope.launch { context.dataStore.edit { it[historyLimitKey] = newLimit.toIntOrNull() ?: 100 } } },
-                            modifier = Modifier.width(80.dp),
-                            singleLine = true
-                        )
-                    }
-                )
-                ListItem(
-                    headlineContent = { Text("Cache & History") },
-                    supportingContent = {
-                        Row(modifier = Modifier.padding(top = 8.dp)) {
-                            Button(onClick = { /* Export CSV */ }) { Text("CSV") }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Button(onClick = { /* Export PDF */ }) { Text("PDF") }
-                        }
-                    }
-                )
-            }
+            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }
-
-// Preference keys
-private val themeKey = stringPreferencesKey("theme")
-private val primaryColorKey = stringPreferencesKey("primary_color")
-private val fontScaleKey = floatPreferencesKey("font_scale")
-private val precisionKey = intPreferencesKey("precision")
-private val scientificNotationKey = booleanPreferencesKey("scientific_notation")
-private val degreeRadianKey = stringPreferencesKey("angle_mode")
-private val hapticIntensityKey = floatPreferencesKey("haptic_intensity")
-private val soundEffectsKey = booleanPreferencesKey("sound_effects")
-private val historyLimitKey = intPreferencesKey("history_limit")

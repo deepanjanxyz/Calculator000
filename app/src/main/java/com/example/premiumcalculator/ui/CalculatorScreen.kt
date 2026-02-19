@@ -129,6 +129,9 @@ fun CalculatorScreen(navController: NavController) {
             CenterAlignedTopAppBar(
                 title = { Text("Pro Calculator", fontWeight = FontWeight.ExtraBold) },
                 actions = {
+                    IconButton(onClick = { navController.navigate("settings") }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.primary)
+                    }
                     IconButton(onClick = { showSheet = true }) {
                         Icon(Icons.Default.Widgets, "Features", tint = MaterialTheme.colorScheme.primary)
                     }
