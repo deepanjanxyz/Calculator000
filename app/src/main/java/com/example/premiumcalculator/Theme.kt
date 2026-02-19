@@ -13,7 +13,6 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.map
 
 private val THEME_KEY = stringPreferencesKey("theme")
-private val Context.dataStore by preferencesDataStore(name = "settings")
 
 private val LightColorScheme = lightColorScheme(
     primary = Color(0xFF6200EE),

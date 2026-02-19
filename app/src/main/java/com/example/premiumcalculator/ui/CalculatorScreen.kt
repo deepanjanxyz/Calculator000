@@ -31,7 +31,6 @@ import com.example.premiumcalculator.viewmodel.CalculatorViewModel
 import kotlinx.coroutines.flow.map
 
 private val HAPTIC_KEY = booleanPreferencesKey("haptic")
-private val Context.dataStore by preferencesDataStore(name = "settings")
 
 data class CalcButton(val text: String)
 
