@@ -47,8 +47,10 @@ fun CalculatorScreen(navController: NavController) {
     val viewModel: CalculatorViewModel = hiltViewModel()
     val context = LocalContext.current
     val hapticEnabled by remember { mutableStateOf(true) }
-    val expression by viewModel.expression
-    val preview by viewModel.preview
+    
+    // StateFlow কে State এ রূপান্তর করা (ফিক্স)
+    val expression by viewModel.expression.collectAsState()
+    val preview by viewModel.preview.collectAsState()
 
     var showFeatureSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
@@ -59,7 +61,6 @@ fun CalculatorScreen(navController: NavController) {
             onDismissRequest = { showFeatureSheet = false },
             sheetState = sheetState,
             shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-            dragHandle = { BottomSheetDefaults.DragHandle() },
             containerColor = MaterialTheme.colorScheme.surface
         ) {
             Text(
@@ -75,7 +76,7 @@ fun CalculatorScreen(navController: NavController) {
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
             ) {
-                items(proTools) { tool ->
+                items(proToolsList) { tool ->
                     ProToolCard(tool, navController) {
                         coroutineScope.launch {
                             sheetState.hide()
@@ -119,11 +120,12 @@ fun CalculatorScreen(navController: NavController) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = preview.ifEmpty { "0" },
+                    text = preview.ifEmpty { "" },
                     fontSize = 56.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.End,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                 )
                 Spacer(modifier = Modifier.height(24.dp))
             }
@@ -154,19 +156,19 @@ fun CalculatorScreen(navController: NavController) {
     }
 }
 
-private val proTools = listOf(
-    ProTool(Icons.Default.HealthAndSafety, "BMI/Health", "Track health", "bmi"),
-    ProTool(Icons.Default.AttachMoney, "Investment", "Compound interest", "investment"),
-    ProTool(Icons.Default.LocalGasStation, "Fuel Cost", "Trip optimizer", "fuel"),
-    ProTool(Icons.Default.CompareArrows, "Unit Price", "Deal finder", "unit_price"),
-    ProTool(Icons.Default.School, "GPA/CGPA", "Grade calc", "gpa"),
-    ProTool(Icons.Default.CurrencyExchange, "Currency", "Live rates", "currency")
+private val proToolsList = listOf(
+    ProToolData(Icons.Default.HealthAndSafety, "BMI/Health", "Track health", "bmi"),
+    ProToolData(Icons.Default.AttachMoney, "Investment", "Compound interest", "investment"),
+    ProToolData(Icons.Default.LocalGasStation, "Fuel Cost", "Trip optimizer", "fuel"),
+    ProToolData(Icons.Default.CompareArrows, "Unit Price", "Deal finder", "unit_price"),
+    ProToolData(Icons.Default.School, "GPA/CGPA", "Grade calc", "gpa"),
+    ProToolData(Icons.Default.CurrencyExchange, "Currency", "Live rates", "currency")
 )
 
-data class ProTool(val icon: ImageVector, val title: String, val subtitle: String, val route: String)
+data class ProToolData(val icon: ImageVector, val title: String, val subtitle: String, val route: String)
 
 @Composable
-private fun ProToolCard(tool: ProTool, navController: NavController, onDismiss: () -> Unit) {
+private fun ProToolCard(tool: ProToolData, navController: NavController, onDismiss: () -> Unit) {
     var pressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (pressed) 0.94f else 1f)
 
