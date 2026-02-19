@@ -79,16 +79,16 @@ fun CalculatorScreen(navController: NavController) {
     val expression by viewModel.expression.collectAsState()
     val preview by viewModel.preview.collectAsState()
 
-    var showSheet by remember { mutableStateOf(false) }
+    var showToolsSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val scope = rememberCoroutineScope()
 
     val keypadButtons = remember { basicKeypadButtons }
     val proToolsList = remember { fullProToolsList }
 
-    if (showSheet) {
+    if (showToolsSheet) {
         ModalBottomSheet(
-            onDismissRequest = { showSheet = false },
+            onDismissRequest = { showToolsSheet = false },
             sheetState = sheetState,
             shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
             containerColor = MaterialTheme.colorScheme.surface,
@@ -102,7 +102,7 @@ fun CalculatorScreen(navController: NavController) {
                 ) {
                     Text("Pro Tools", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                     IconButton(onClick = {
-                        scope.launch { sheetState.hide(); showSheet = false }
+                        scope.launch { sheetState.hide(); showToolsSheet = false }
                     }) {
                         Icon(Icons.Default.Close, "Close")
                     }
@@ -116,7 +116,7 @@ fun CalculatorScreen(navController: NavController) {
                 ) {
                     items(items = proToolsList, key = { it.title }) { tool ->
                         ProToolCard(tool, navController) {
-                            scope.launch { sheetState.hide(); showSheet = false }
+                            scope.launch { sheetState.hide(); showToolsSheet = false }
                         }
                     }
                 }
@@ -126,14 +126,15 @@ fun CalculatorScreen(navController: NavController) {
 
     Scaffold(
         topBar = {
+            // তোর দেওয়া হুবহু TopBar কোড মার্জ করা হলো
             CenterAlignedTopAppBar(
-                title = { Text("Pro Calculator", fontWeight = FontWeight.ExtraBold) },
+                title = { Text("Calculator") },
                 actions = {
                     IconButton(onClick = { navController.navigate("settings") }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
-                    IconButton(onClick = { showSheet = true }) {
-                        Icon(Icons.Default.Widgets, "Features", tint = MaterialTheme.colorScheme.primary)
+                    IconButton(onClick = { showToolsSheet = true }) {
+                        Icon(Icons.Default.Widgets, contentDescription = "Pro Tools")
                     }
                 }
             )

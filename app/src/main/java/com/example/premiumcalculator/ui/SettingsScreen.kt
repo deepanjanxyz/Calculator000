@@ -9,19 +9,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
-import androidx.navigation.NavController
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.map
 
-// DataStore initialization to save settings locally
+// DataStore initialization to prevent crashes
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,23 +28,17 @@ fun SettingsScreen(navController: NavController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // Read current values from DataStore
-    var precision by remember { mutableIntStateOf(6) }
-    var hapticEnabled by remember { mutableStateOf(true) }
-    var theme by remember { mutableStateOf("system") }
+    // DataStore flows
+    val precision by context.dataStore.data.map { it[intPreferencesKey("precision")] ?: 6 }.collectAsState(initial = 6)
+    val hapticEnabled by context.dataStore.data.map { it[booleanPreferencesKey("haptic")] ?: true }.collectAsState(initial = true)
+    val theme by context.dataStore.data.map { it[stringPreferencesKey("theme")] ?: "system" }.collectAsState(initial = "system")
 
-    LaunchedEffect(Unit) {
-        context.dataStore.data.collect { prefs ->
-            precision = prefs[intPreferencesKey("precision")] ?: 6
-            hapticEnabled = prefs[booleanPreferencesKey("haptic")] ?: true
-            theme = prefs[stringPreferencesKey("theme")] ?: "system"
-        }
-    }
+    var showClearConfirm by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Settings", fontWeight = FontWeight.Bold) },
+                title = { Text("Settings") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -59,110 +51,91 @@ fun SettingsScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState())
+                .padding(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // ──────────────────────────────
-            // Precision (decimal places)
-            // ──────────────────────────────
-            Text("Decimal Precision", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
+            // Precision
+            Text("Decimal Precision", style = MaterialTheme.typography.titleMedium)
             Slider(
                 value = precision.toFloat(),
                 onValueChange = { new ->
-                    precision = new.toInt()
                     scope.launch {
-                        context.dataStore.edit { prefs ->
-                            prefs[intPreferencesKey("precision")] = precision
-                        }
+                        context.dataStore.edit { it[intPreferencesKey("precision")] = new.toInt() }
                     }
                 },
                 valueRange = 0f..10f,
                 steps = 9,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
             )
-            Text("$precision decimal places", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+            Text("$precision decimals", modifier = Modifier.padding(top = 4.dp))
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
+            Spacer(Modifier.height(32.dp))
 
-            // ──────────────────────────────
-            // Haptic Feedback Toggle
-            // ──────────────────────────────
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text("Haptic Feedback", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text("Vibration on button press", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Switch(
-                    checked = hapticEnabled,
-                    onCheckedChange = { enabled ->
-                        hapticEnabled = enabled
-                        scope.launch {
-                            context.dataStore.edit { prefs ->
-                                prefs[booleanPreferencesKey("haptic")] = enabled
+            // Haptic
+            ListItem(
+                headlineContent = { Text("Haptic Feedback") },
+                trailingContent = {
+                    Switch(
+                        checked = hapticEnabled,
+                        onCheckedChange = { new ->
+                            scope.launch {
+                                context.dataStore.edit { it[booleanPreferencesKey("haptic")] = new }
                             }
                         }
-                    }
-                )
-            }
+                    )
+                }
+            )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
+            Spacer(Modifier.height(32.dp))
 
-            // ──────────────────────────────
-            // Theme Selection
-            // ──────────────────────────────
-            Text("Theme", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            // Theme
+            Text("Theme", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(8.dp))
-            Column {
-                listOf("light" to "Light", "dark" to "Dark", "system" to "System Default").forEach { (value, label) ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                    ) {
-                        RadioButton(
-                            selected = theme == value,
-                            onClick = {
-                                theme = value
-                                scope.launch {
-                                    context.dataStore.edit { prefs ->
-                                        prefs[stringPreferencesKey("theme")] = value
-                                    }
-                                }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                listOf("light" to "Light", "dark" to "Dark", "system" to "System").forEach { (key, label) ->
+                    FilterChip(
+                        selected = theme == key,
+                        onClick = {
+                            scope.launch {
+                                context.dataStore.edit { it[stringPreferencesKey("theme")] = key }
                             }
-                        )
-                        Text(label, modifier = Modifier.padding(start = 12.dp), fontSize = 16.sp)
-                    }
+                        },
+                        label = { Text(label) }
+                    )
                 }
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
+            Spacer(Modifier.height(48.dp))
 
-            // ──────────────────────────────
-            // Clear History Button
-            // ──────────────────────────────
+            // Clear History
             OutlinedButton(
-                onClick = {
-                    scope.launch {
-                        Toast.makeText(context, "History Cleared Successfully!", Toast.LENGTH_SHORT).show()
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                )
+                onClick = { showClearConfirm = true },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
             ) {
-                Text("Clear All History", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("Clear All History", color = MaterialTheme.colorScheme.error)
             }
-
-            Spacer(modifier = Modifier.height(40.dp))
         }
+    }
+
+    if (showClearConfirm) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirm = false },
+            title = { Text("Confirm Clear") },
+            text = { Text("Are you sure you want to delete all calculation history? This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    Toast.makeText(context, "History cleared", Toast.LENGTH_SHORT).show()
+                    showClearConfirm = false
+                }) {
+                    Text("Clear", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
