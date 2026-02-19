@@ -54,7 +54,7 @@ fun AppTheme(
 ) {
     val context = LocalContext.current
     val theme = context.dataStore.data.map { it[THEME_KEY] ?: "light" }.collectAsState(initial = "light").value
-    
+
     val colorScheme = when (theme) {
         "dark" -> DarkColorScheme
         "black" -> AmoledColorScheme
