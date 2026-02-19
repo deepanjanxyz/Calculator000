@@ -70,7 +70,4 @@ fun AppTheme(
     )
 }
 
-private val Context.dataStore: DataStore<Preferences> by lazy {
-    // Accessing the static provider for simplicity in this setup
-    AppModule.provideDataStore(this@dataStore)
-}
+private val Context.dataStore: androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences> get() = AppModule.provideDataStore(this)
