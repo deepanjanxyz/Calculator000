@@ -6,30 +6,14 @@ import android.os.Vibrator
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -43,16 +27,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.premiumcalculator.viewmodel.CalculatorViewModel
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Refresh
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import kotlinx.coroutines.flow.map
-import com.example.premiumcalculator.App
-import com.example.premiumcalculator.Theme.dataStore
+import com.example.premiumcalculator.dataStore
 
 private val HAPTIC_KEY = booleanPreferencesKey("haptic")
-private val PRECISION_KEY = intPreferencesKey("precision")
 private val BUTTON_ROUND_KEY = booleanPreferencesKey("button_round")
 private val GLASSMORPHISM_KEY = booleanPreferencesKey("glassmorphism")
 
@@ -71,13 +53,17 @@ private val scientificButtons = basicButtons + listOf(
     CalcButton("π"), CalcButton("e"), CalcButton("!"), CalcButton("√")
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalculatorScreen(navController: NavController) {
     val viewModel: CalculatorViewModel = hiltViewModel()
     val context = LocalContext.current
+    
+    // DataStore flow handling
     val haptic by context.dataStore.data.map { it[HAPTIC_KEY] ?: true }.collectAsState(initial = true)
     val glassmorphism by context.dataStore.data.map { it[GLASSMORPHISM_KEY] ?: false }.collectAsState(initial = false)
     val buttonRound by context.dataStore.data.map { it[BUTTON_ROUND_KEY] ?: true }.collectAsState(initial = true)
+    
     val scientificMode = remember { mutableStateOf(false) }
     val buttons = if (scientificMode.value) scientificButtons else basicButtons
     val expression by viewModel.expression
@@ -86,19 +72,22 @@ fun CalculatorScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (glassmorphism) Color.White.copy(alpha = 0.2f) else Color.Transparent)
+            .background(if (glassmorphism) Color.White.copy(alpha = 0.2f) else MaterialTheme.colorScheme.background)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
             Text("Sci-Mode")
             Switch(checked = scientificMode.value, onCheckedChange = { scientificMode.value = it })
             IconButton(onClick = { navController.navigate("settings") }) { Icon(Icons.Default.Settings, "Settings") }
-            IconButton(onClick = { navController.navigate("history") }) { Icon(Icons.Default.History, "History") }
-            IconButton(onClick = { navController.navigate("solver") }) { Text("Solv") }
-            IconButton(onClick = { navController.navigate("age") }) { Text("Age") }
-            IconButton(onClick = { navController.navigate("land") }) { Text("Land") }
-            IconButton(onClick = { navController.navigate("emi") }) { Text("EMI") }
-            IconButton(onClick = { navController.navigate("discount") }) { Text("Disc") }
+            IconButton(onClick = { navController.navigate("history") }) { Icon(Icons.Default.Refresh, "History") }
+            Button(onClick = { navController.navigate("age") }, contentPadding = PaddingValues(4.dp)) { Text("Age") }
+            Button(onClick = { navController.navigate("land") }, contentPadding = PaddingValues(4.dp)) { Text("Land") }
+            Button(onClick = { navController.navigate("emi") }, contentPadding = PaddingValues(4.dp)) { Text("EMI") }
         }
+        
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -109,13 +98,17 @@ fun CalculatorScreen(navController: NavController) {
             Text(text = expression, style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth())
             Text(text = preview, style = MaterialTheme.typography.displayLarge, textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth())
         }
-        LazyVerticalGrid(columns = GridCells.Fixed(5), modifier = Modifier.padding(8.dp)) {
+        
+        LazyVerticalGrid(columns = GridCells.Fixed(4), modifier = Modifier.padding(8.dp)) {
             items(buttons) { button ->
                 AnimatedButton(
                     text = button.text,
-                    shape = if (buttonRound) CircleShape else RoundedCornerShape(4.dp),
+                    shape = if (buttonRound) CircleShape else RoundedCornerShape(8.dp),
                     onClick = {
-                        if (haptic) (context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator).vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK))
+                        if (haptic) {
+                            val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                            vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+                        }
                         viewModel.onButtonClick(button.text)
                     }
                 )
@@ -132,20 +125,23 @@ fun AnimatedButton(text: String, shape: Shape, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .padding(4.dp)
+            .aspectRatio(1f)
             .scale(scale)
             .pointerInput(Unit) {
-                detectTapGestures(onPress = {
-                    pressed.value = true
-                    tryAwaitRelease()
-                    pressed.value = false
-                    onClick()
-                })
+                detectTapGestures(
+                    onPress = {
+                        pressed.value = true
+                        tryAwaitRelease()
+                        pressed.value = false
+                        onClick()
+                    }
+                )
             },
-        elevation = CardDefaults.cardElevation(4.dp),
+        elevation = CardDefaults.cardElevation(2.dp),
         shape = shape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(16.dp)) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             Text(text, style = MaterialTheme.typography.titleLarge)
         }
     }

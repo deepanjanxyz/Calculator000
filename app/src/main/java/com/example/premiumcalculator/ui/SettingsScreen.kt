@@ -88,10 +88,14 @@ fun SettingsScreen(navController: NavController) {
             })
 
             Text("Glassmorphism", modifier = Modifier.padding(top = 16.dp))
-            Switch(checked = glassmorphism, onCheckedChange = { scope.launch { context.dataStore.edit { it[GLASSMORPHISM_KEY] = it } } })
+            Switch(checked = glassmorphism, onCheckedChange = { isChecked -> 
+                scope.launch { context.dataStore.edit { prefs -> prefs[GLASSMORPHISM_KEY] = isChecked } } 
+            })
 
             Text("Button Shape Round", modifier = Modifier.padding(top = 16.dp))
-            Switch(checked = buttonRound, onCheckedChange = { scope.launch { context.dataStore.edit { it[BUTTON_ROUND_KEY] = it } } })
+            Switch(checked = buttonRound, onCheckedChange = { isChecked -> 
+                scope.launch { context.dataStore.edit { prefs -> prefs[BUTTON_ROUND_KEY] = isChecked } } 
+            })
 
             Text("Font", modifier = Modifier.padding(top = 16.dp))
             Row {
@@ -104,7 +108,9 @@ fun SettingsScreen(navController: NavController) {
             }
 
             Text("Haptic Feedback", modifier = Modifier.padding(top = 16.dp))
-            Switch(checked = haptic, onCheckedChange = { scope.launch { context.dataStore.edit { it[HAPTIC_KEY] = it } } })
+            Switch(checked = haptic, onCheckedChange = { isChecked -> 
+                scope.launch { context.dataStore.edit { prefs -> prefs[HAPTIC_KEY] = isChecked } } 
+            })
 
             Text("Decimal Places", modifier = Modifier.padding(top = 16.dp))
             Row {
