@@ -1,27 +1,15 @@
 package com.example.premiumcalculator.ui
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.premiumcalculator.viewmodel.EquationSolverViewModel
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,22 +24,42 @@ fun EquationSolverScreen(navController: NavController) {
                 title = { Text("Equation Solver") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
         }
-    ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues).padding(16.dp)) {
-            TextField(
-                value = equation, 
-                onValueChange = { equation = it }, 
-                label = { Text("Enter equation (e.g., 2x^2 + 3x - 2 = 0)") }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            OutlinedTextField(
+                value = equation,
+                onValueChange = { equation = it },
+                label = { Text("Equation (ex: 2x² + 5x - 3 = 0)") },
+                modifier = Modifier.fillMaxWidth()
             )
-            Button(onClick = { viewModel.solve(equation) }, modifier = Modifier.padding(top = 8.dp)) { 
-                Text("Solve") 
+
+            Button(
+                onClick = { viewModel.solve(equation) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Solve")
             }
-            Text("Result: $result", modifier = Modifier.padding(top = 16.dp))
+
+            if (result.isNotBlank()) {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = result,
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
         }
     }
 }

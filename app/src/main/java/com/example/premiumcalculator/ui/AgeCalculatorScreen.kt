@@ -1,34 +1,23 @@
 package com.example.premiumcalculator.ui
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import java.time.LocalDate
 import java.time.Period
-import java.time.temporal.ChronoUnit
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgeCalculatorScreen(navController: NavController) {
-    var birthDate by remember { mutableStateOf("") }
-    var age by remember { mutableStateOf("") }
+    var birthDateStr by remember { mutableStateOf("") }
+    var result by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -36,35 +25,52 @@ fun AgeCalculatorScreen(navController: NavController) {
                 title = { Text("Age Calculator") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
         }
-    ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues).padding(16.dp)) {
-            TextField(
-                value = birthDate, 
-                onValueChange = { birthDate = it }, 
-                label = { Text("Birthdate (YYYY-MM-DD)") },
-                placeholder = { Text("e.g. 1995-05-15") }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            OutlinedTextField(
+                value = birthDateStr,
+                onValueChange = { birthDateStr = it },
+                label = { Text("Birth Date (YYYY-MM-DD)") },
+                placeholder = { Text("1995-08-15") },
+                modifier = Modifier.fillMaxWidth()
             )
+
             Button(
                 onClick = {
                     try {
-                        val birth = LocalDate.parse(birthDate.trim())
-                        val now = LocalDate.now()
-                        val period = Period.between(birth, now)
-                        val seconds = ChronoUnit.SECONDS.between(birth.atStartOfDay(), now.atStartOfDay())
-                        age = "${period.years} years, ${period.months} months, ${period.days} days\nTotal: $seconds seconds"
-                    } catch (e: Exception) {
-                        age = "Invalid date format (YYYY-MM-DD)"
+                        val birth = LocalDate.parse(birthDateStr, DateTimeFormatter.ISO_LOCAL_DATE)
+                        val today = LocalDate.now()
+                        val period = Period.between(birth, today)
+                        result = "${period.years} years, ${period.months} months, ${period.days} days"
+                    } catch (e: DateTimeParseException) {
+                        result = "Invalid date format"
                     }
                 },
-                modifier = Modifier.padding(top = 8.dp)
-            ) { Text("Calculate") }
-            
-            Text(text = "Age: $age", modifier = Modifier.padding(top = 16.dp))
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Calculate Age")
+            }
+
+            if (result.isNotBlank()) {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = result,
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+            }
         }
     }
 }

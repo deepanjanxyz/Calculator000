@@ -1,25 +1,14 @@
 package com.example.premiumcalculator.ui
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import java.util.Locale
 import kotlin.math.pow
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,7 +17,7 @@ fun EmiCalculatorScreen(navController: NavController) {
     var principal by remember { mutableStateOf("") }
     var rate by remember { mutableStateOf("") }
     var tenure by remember { mutableStateOf("") }
-    var emi by remember { mutableStateOf("") }
+    var emiResult by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -36,33 +25,60 @@ fun EmiCalculatorScreen(navController: NavController) {
                 title = { Text("EMI Calculator") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
         }
-    ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues).padding(16.dp)) {
-            TextField(value = principal, onValueChange = { principal = it }, label = { Text("Principal Amount") }, modifier = Modifier.padding(bottom = 8.dp))
-            TextField(value = rate, onValueChange = { rate = it }, label = { Text("Annual Rate (%)") }, modifier = Modifier.padding(bottom = 8.dp))
-            TextField(value = tenure, onValueChange = { tenure = it }, label = { Text("Tenure (months)") }, modifier = Modifier.padding(bottom = 16.dp))
-            
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            OutlinedTextField(
+                value = principal,
+                onValueChange = { principal = it },
+                label = { Text("Loan Amount") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = rate,
+                onValueChange = { rate = it },
+                label = { Text("Annual Interest Rate (%)") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = tenure,
+                onValueChange = { tenure = it },
+                label = { Text("Tenure (months)") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
             Button(onClick = {
-                val p = principal.toDoubleOrNull() ?: 0.0
-                val r = (rate.toDoubleOrNull() ?: 0.0) / 1200
-                val n = tenure.toDoubleOrNull() ?: 0.0
-                if (r > 0 && n > 0) {
-                    val emiVal = p * r * (1 + r).pow(n) / ((1 + r).pow(n) - 1)
-                    emi = String.format("%.2f", emiVal)
-                } else if (r == 0.0 && n > 0) {
-                    emi = String.format("%.2f", p / n)
-                } else {
-                    emi = "Invalid Input"
+                try {
+                    val p = principal.toDouble()
+                    val r = rate.toDouble() / 12 / 100
+                    val n = tenure.toDouble()
+                    val emi = p * r * (1 + r).pow(n) / ((1 + r).pow(n) - 1)
+                    emiResult = String.format(Locale.US, "₹%.2f per month", emi)
+                } catch (e: Exception) {
+                    emiResult = "Please enter valid numbers"
                 }
-            }) { Text("Calculate EMI") }
-            
-            if (emi.isNotEmpty()) {
-                Text(text = "Monthly EMI: $emi", modifier = Modifier.padding(top = 16.dp))
+            }, modifier = Modifier.fillMaxWidth()) {
+                Text("Calculate EMI")
+            }
+
+            if (emiResult.isNotBlank()) {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = emiResult,
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                }
             }
         }
     }

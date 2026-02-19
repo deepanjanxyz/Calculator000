@@ -1,62 +1,86 @@
 package com.example.premiumcalculator.ui
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiscountTaxScreen(navController: NavController) {
-    var price by remember { mutableStateOf("") }
-    var discount by remember { mutableStateOf("") }
-    var tax by remember { mutableStateOf("") }
-    var finalPrice by remember { mutableStateOf("") }
+    var originalPrice by remember { mutableStateOf("") }
+    var discountPercent by remember { mutableStateOf("") }
+    var taxPercent by remember { mutableStateOf("") }
+    var finalAmount by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Discount/Tax Calculator") },
+                title = { Text("Discount & Tax Calculator") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
         }
-    ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues).padding(16.dp)) {
-            TextField(value = price, onValueChange = { price = it }, label = { Text("Original Price") }, modifier = Modifier.padding(bottom = 8.dp))
-            TextField(value = discount, onValueChange = { discount = it }, label = { Text("Discount (%)") }, modifier = Modifier.padding(bottom = 8.dp))
-            TextField(value = tax, onValueChange = { tax = it }, label = { Text("Tax (%)") }, modifier = Modifier.padding(bottom = 16.dp))
-            
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            OutlinedTextField(
+                value = originalPrice,
+                onValueChange = { originalPrice = it },
+                label = { Text("Original Price") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = discountPercent,
+                onValueChange = { discountPercent = it },
+                label = { Text("Discount (%)") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = taxPercent,
+                onValueChange = { taxPercent = it },
+                label = { Text("Tax / GST (%)") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
             Button(onClick = {
-                val p = price.toDoubleOrNull() ?: 0.0
-                val d = discount.toDoubleOrNull() ?: 0.0
-                val t = tax.toDoubleOrNull() ?: 0.0
-                val afterDiscount = p - (p * d / 100)
-                val afterTax = afterDiscount + (afterDiscount * t / 100)
-                finalPrice = String.format("%.2f", afterTax)
-            }) { Text("Calculate Final Price") }
-            
-            if (finalPrice.isNotEmpty()) {
-                Text(text = "Final Price: $finalPrice", modifier = Modifier.padding(top = 16.dp))
+                try {
+                    val price = originalPrice.toDouble()
+                    val disc = discountPercent.toDoubleOrNull() ?: 0.0
+                    val tax = taxPercent.toDoubleOrNull() ?: 0.0
+
+                    val afterDiscount = price * (1 - disc / 100)
+                    val final = afterDiscount * (1 + tax / 100)
+
+                    finalAmount = String.format(Locale.US, "Final Amount: ₹%.2f\nYou saved: ₹%.2f", final, price - afterDiscount)
+                } catch (e: Exception) {
+                    finalAmount = "Invalid input"
+                }
+            }, modifier = Modifier.fillMaxWidth()) {
+                Text("Calculate")
+            }
+
+            if (finalAmount.isNotBlank()) {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = finalAmount,
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
             }
         }
     }

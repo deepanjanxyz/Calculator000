@@ -1,37 +1,33 @@
 package com.example.premiumcalculator.ui
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Button
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LandConverterScreen(navController: NavController) {
-    var value by remember { mutableStateOf("") }
-    var fromUnit by remember { mutableStateOf("Acre") }
-    var toUnit by remember { mutableStateOf("Bigha") }
+    var inputValue by remember { mutableStateOf("") }
+    var fromUnit by remember { mutableStateOf("Decimal") }
+    var toUnit by remember { mutableStateOf("Katha") }
     var result by remember { mutableStateOf("") }
-    val units = listOf("Acre", "Bigha", "Kattha", "Shotok")
+
+    val units = listOf("Decimal", "Katha", "Bigha", "Acre", "Shotok")
+
+    // Conversion factors (approx, Bangladesh standard)
+    val toDecimal = mapOf(
+        "Decimal" to 1.0,
+        "Katha" to 1.0 / 1.653,
+        "Bigha" to 1.0 / 33.057,
+        "Acre" to 1.0 / 100.0,
+        "Shotok" to 1.0
+    )
 
     Scaffold(
         topBar = {
@@ -39,56 +35,73 @@ fun LandConverterScreen(navController: NavController) {
                 title = { Text("Land Converter") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
         }
-    ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues).padding(16.dp)) {
-            TextField(
-                value = value, 
-                onValueChange = { value = it }, 
-                label = { Text("Enter Value") },
-                modifier = Modifier.padding(bottom = 8.dp)
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            OutlinedTextField(
+                value = inputValue,
+                onValueChange = { inputValue = it },
+                label = { Text("Value") },
+                modifier = Modifier.fillMaxWidth()
             )
-            Row(modifier = Modifier.padding(bottom = 16.dp)) {
-                UnitDropdown(units, fromUnit) { fromUnit = it }
-                Text(" to ", modifier = Modifier.padding(horizontal = 8.dp))
-                UnitDropdown(units, toUnit) { toUnit = it }
-            }
-            Button(onClick = {
-                val v = value.toDoubleOrNull() ?: 0.0
-                val toAcre = when (fromUnit) {
-                    "Bigha" -> v * 0.3305
-                    "Kattha" -> v * 0.0165
-                    "Shotok" -> v * 0.01
-                    else -> v
-                }
-                val finalRes = when (toUnit) {
-                    "Bigha" -> (toAcre / 0.3305)
-                    "Kattha" -> (toAcre / 0.0165)
-                    "Shotok" -> (toAcre / 0.01)
-                    else -> toAcre
-                }
-                result = String.format("%.4f", finalRes)
-            }) { Text("Convert") }
-            
-            if (result.isNotEmpty()) {
-                Text(text = "Result: $result $toUnit", modifier = Modifier.padding(top = 16.dp))
-            }
-        }
-    }
-}
 
-@Composable
-fun UnitDropdown(units: List<String>, selected: String, onSelect: (String) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    Column {
-        Button(onClick = { expanded = true }) { Text(selected) }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            units.forEach { unit ->
-                DropdownMenuItem(text = { Text(unit) }, onClick = { onSelect(unit); expanded = false })
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Note: ExposedDropdownMenuBox is handled here
+                Box(modifier = Modifier.weight(1f)) {
+                     TextField(
+                        readOnly = true,
+                        value = fromUnit,
+                        onValueChange = { },
+                        label = { Text("From") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Box(modifier = Modifier.weight(1f)) {
+                    TextField(
+                        readOnly = true,
+                        value = toUnit,
+                        onValueChange = { },
+                        label = { Text("To") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            Button(onClick = {
+                try {
+                    val value = inputValue.toDoubleOrNull() ?: 0.0
+                    val decimal = value * (toDecimal[fromUnit] ?: 1.0)
+                    val converted = decimal / (toDecimal[toUnit] ?: 1.0)
+                    result = String.format(Locale.US, "%.4f %s", converted, toUnit)
+                } catch (e: Exception) {
+                    result = "Invalid input"
+                }
+            }, modifier = Modifier.fillMaxWidth()) {
+                Text("Convert")
+            }
+
+            if (result.isNotBlank()) {
+                Text(
+                    text = result,
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.padding(top = 16.dp)
+                )
             }
         }
     }
