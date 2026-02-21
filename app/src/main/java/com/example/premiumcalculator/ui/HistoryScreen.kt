@@ -31,7 +31,7 @@ fun HistoryScreen(navController: NavController) {
                 },
                 actions = {
                     IconButton(onClick = { viewModel.clearAll() }) {
-                        Icon(Icons.Default.DeleteForever, "Clear All")
+                        Icon(Icons.Default.Delete, "Clear All")
                     }
                 }
             )
