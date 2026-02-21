@@ -21,6 +21,8 @@ fun NavGraph(navController: NavHostController) {
         composable("solver") { EquationSolverScreen(navController) }
         composable("history") { HistoryScreen(navController) }
         composable("settings") { SettingsScreen(navController) }
+        composable("factorial") { FactorialScreen(navController) }
+        composable("factorial") { FactorialScreen(navController) }
         
         // নতুন রুটগুলো এখানে যোগ করা হলো (ক্রাশ ফিক্স)
         composable("discount") { DiscountTaxScreen(navController) }

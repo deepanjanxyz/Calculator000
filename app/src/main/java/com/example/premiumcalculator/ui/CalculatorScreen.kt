@@ -87,7 +87,7 @@ fun CalculatorScreen(navController: NavController) {
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp)) {
             // Display Area
-            Column(modifier = Modifier.weight(2.6f).fillMaxWidth(), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.Bottom) {
+            Column(modifier = Modifier.weight(2.2f).fillMaxWidth(), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.Bottom) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = expression.ifEmpty { "0" },
@@ -113,7 +113,7 @@ fun CalculatorScreen(navController: NavController) {
             }
 
             // Keypad Grid (Fixed, no more jumping)
-            LazyVerticalGrid(columns = GridCells.Fixed(4), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.weight(3.4f)) {
+            LazyVerticalGrid(columns = GridCells.Fixed(4), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.weight(3.8f)) {
                 items(keypadButtons) { btn ->
                     KeypadButton(btn) {
                         val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
