@@ -15,7 +15,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.intPreferencesKey
 
 private val PRECISION_KEY = intPreferencesKey("precision")
-private val operatorsSet = setOf("+", "-", "*", "/", "÷", "×", "−", "^", "%")
+private val operatorsSet = setOf("+", "-", "*", "/", "÷", "×", "−", "^")
 
 @HiltViewModel
 class CalculatorViewModel @Inject constructor(
@@ -49,13 +49,13 @@ class CalculatorViewModel @Inject constructor(
                     _preview.update { "" }
                 }
                 "." -> {
-                    val lastNumber = current.split(Regex("[+\\-×÷^%]")).lastOrNull() ?: ""
+                    val lastNumber = current.split(Regex("[+\\-×÷^%√]")).lastOrNull() ?: ""
                     if (!lastNumber.contains(".")) {
                         _expression.update { it + "." }
                     }
                 }
                 "=" -> {
-                    if (current.isNotEmpty() && current.last().toString() !in operatorsSet) {
+                    if (current.isNotEmpty() && current.last().toString() !in operatorsSet && current.last() != '√') {
                         try {
                             val result = evaluateExpression(current)
                             val formatted = formatResult(result)
@@ -67,12 +67,26 @@ class CalculatorViewModel @Inject constructor(
                         }
                     }
                 }
+                "√" -> {
+                    // পরপর রুট (√√√) দেওয়া বন্ধ করা হলো
+                    if (current.isEmpty() || current.last() != '√') {
+                        _expression.update { it + input }
+                    }
+                    updatePreviewInBackground()
+                }
+                "%" -> {
+                    // পার্সেন্টেজ শুধুমাত্র সংখ্যার পরে বসবে, হাওয়ায় ভাসবে না
+                    if (current.isNotEmpty() && (current.last().isDigit() || current.last() == ')')) {
+                        _expression.update { it + input }
+                    }
+                    updatePreviewInBackground()
+                }
                 else -> {
                     if (input in operatorsSet) {
                         if (current.isEmpty()) return@launch
                         if (current.last().toString() in operatorsSet) {
                             _expression.update { it.dropLast(1) + input }
-                        } else {
+                        } else if (current.last() != '√') { 
                             _expression.update { it + input }
                         }
                     } else {
@@ -87,7 +101,7 @@ class CalculatorViewModel @Inject constructor(
     private fun updatePreviewInBackground() {
         viewModelScope.launch(Dispatchers.Default) {
             val expr = _expression.value
-            if (expr.isEmpty() || expr.last().toString() in operatorsSet) {
+            if (expr.isEmpty() || expr.last().toString() in operatorsSet || expr.last() == '√') {
                 _preview.update { "" }
                 return@launch
             }
@@ -117,7 +131,8 @@ class CalculatorViewModel @Inject constructor(
 
         val output = java.util.ArrayDeque<BigDecimal>()
         val ops = java.util.ArrayDeque<String>()
-        val precedence = mapOf("+" to 1, "-" to 1, "*" to 2, "/" to 2, "^" to 3)
+        // রুট (√)-কে অঙ্কের নিয়ম শেখানো হলো
+        val precedence = mapOf("+" to 1, "-" to 1, "*" to 2, "/" to 2, "^" to 3, "√" to 4)
 
         for (token in tokens) {
             when {
@@ -141,6 +156,12 @@ class CalculatorViewModel @Inject constructor(
     }
 
     private fun applyOp(output: java.util.ArrayDeque<BigDecimal>, op: String) {
+        if (op == "√") {
+            if (output.isEmpty()) return
+            val a = output.removeLast()
+            output.addLast(BigDecimal(Math.sqrt(a.toDouble())))
+            return
+        }
         if (output.size < 2) return
         val b = output.removeLast()
         val a = output.removeLast()
