@@ -71,7 +71,9 @@ fun GenericConverterDetailScreen(navController: NavController, category: String)
                     val v = value.toDoubleOrNull()
                     if (v != null) {
                         val res = viewModel.convert(category, v, fromUnit, toUnit)
-                        resultText = String.format("%.4f %s", res, toUnit)
+                        // Formatting result properly
+                        val formattedRes = if (res % 1.0 == 0.0) String.format("%.0f", res) else String.format("%.5f", res).trimEnd('0').trimEnd('.')
+                        resultText = "$formattedRes $toUnit"
                         showError = false; keyboardController?.hide()
                     } else { showError = true }
                 },
@@ -83,7 +85,8 @@ fun GenericConverterDetailScreen(navController: NavController, category: String)
                 Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
                     Column(modifier = Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Result", style = MaterialTheme.typography.titleMedium)
-                        Text(text = resultText, fontSize = 32.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
+                        Spacer(Modifier.height(8.dp))
+                        Text(text = resultText, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
                     }
                 }
             }
@@ -103,15 +106,16 @@ fun UnitDropdown(units: List<String>, selected: String, label: String, modifier:
     }
 }
 
+// এই লিস্টটাই আমি একদম প্রো লেভেলের করে দিলাম!
 private fun getUnitsForCategory(category: String): List<String> = when (category) {
-    "Length" -> listOf("km", "m", "cm", "mm", "mile", "yard", "foot", "inch")
-    "Area" -> listOf("sq km", "sq m", "acre", "hectare", "sq ft")
-    "Volume" -> listOf("liter", "ml", "gallon", "m³")
-    "Mass" -> listOf("kg", "g", "mg", "lb", "oz")
-    "Temperature" -> listOf("C", "F", "K")
-    "Time" -> listOf("second", "minute", "hour", "day")
-    "Speed" -> listOf("km/h", "mph", "m/s")
-    "Pressure" -> listOf("Pa", "kPa", "bar", "atm", "psi")
-    "Energy" -> listOf("J", "kJ", "kcal", "BTU", "Wh")
+    "Length" -> listOf("Kilometre (km)", "Metre (m)", "Centimetre (cm)", "Millimetre (mm)", "Micrometre (μm)", "Nanometre (nm)", "Angstrom (Å)", "Mile (mi)", "Yard (yd)", "Foot (ft)", "Inch (in)", "Nautical Mile (NM)", "Astronomical Unit (au)", "Light Year (ly)", "Parsec (pc)")
+    "Area" -> listOf("Square Kilometre (km²)", "Square Metre (m²)", "Square Centimetre (cm²)", "Square Millimetre (mm²)", "Hectare (ha)", "Acre (ac)", "Square Mile (mi²)", "Square Yard (yd²)", "Square Foot (ft²)", "Square Inch (in²)")
+    "Volume" -> listOf("Cubic Metre (m³)", "Litre (L)", "Millilitre (mL)", "Cubic Centimetre (cm³)", "US Gallon (gal)", "US Quart (qt)", "US Pint (pt)", "US Cup", "US Fluid Ounce (fl oz)", "Imperial Gallon", "Cubic Foot (ft³)", "Cubic Inch (in³)")
+    "Mass" -> listOf("Metric Tonne (t)", "Kilogram (kg)", "Gram (g)", "Milligram (mg)", "Microgram (μg)", "Imperial Ton", "US Ton", "Stone (st)", "Pound (lb)", "Ounce (oz)", "Carat (ct)")
+    "Temperature" -> listOf("Celsius (°C)", "Fahrenheit (°F)", "Kelvin (K)", "Rankine (°R)")
+    "Time" -> listOf("Nanosecond (ns)", "Microsecond (μs)", "Millisecond (ms)", "Second (s)", "Minute (min)", "Hour (h)", "Day (d)", "Week (wk)", "Month (mo)", "Year (yr)", "Decade", "Century")
+    "Speed" -> listOf("Metre per second (m/s)", "Kilometre per hour (km/h)", "Mile per hour (mph)", "Foot per second (ft/s)", "Knot (kn)", "Mach (Ma)")
+    "Pressure" -> listOf("Pascal (Pa)", "Kilopascal (kPa)", "Megapascal (MPa)", "Bar (bar)", "Millibar (mbar)", "Standard Atmosphere (atm)", "Pound per square inch (psi)", "Torr (Torr)", "Millimetre of mercury (mmHg)")
+    "Energy" -> listOf("Joule (J)", "Kilojoule (kJ)", "Gram calorie (cal)", "Kilocalorie (kcal)", "Watt-hour (Wh)", "Kilowatt-hour (kWh)", "Electronvolt (eV)", "British Thermal Unit (BTU)", "US Therm")
     else -> emptyList()
 }
