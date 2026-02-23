@@ -1,12 +1,11 @@
 package com.example.premiumcalculator.ui
 
 import android.content.Context
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,7 +18,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,18 +45,22 @@ fun SettingsScreen(navController: NavController) {
 
     val precisionKey = intPreferencesKey("precision")
     val hapticKey = booleanPreferencesKey("haptic")
-    val themeKey = stringPreferencesKey("theme")
     val colorKey = stringPreferencesKey("theme_color")
 
     val precision by context.dataStore.data.map { it[precisionKey] ?: 6 }.collectAsState(initial = 6)
     val hapticEnabled by context.dataStore.data.map { it[hapticKey] ?: true }.collectAsState(initial = true)
-    val theme by context.dataStore.data.map { it[themeKey] ?: "system" }.collectAsState(initial = "system")
     val currentColorHex by context.dataStore.data.map { it[colorKey] ?: "#BB86FC" }.collectAsState(initial = "#BB86FC")
 
-    var hexInput by remember { mutableStateOf(currentColorHex) }
+    var hexInput by remember(currentColorHex) { mutableStateOf(currentColorHex) }
     var showClearDialog by remember { mutableStateOf(false) }
 
-    val presetColors = listOf("#BB86FC", "#03DAC6", "#F44336", "#2196F3", "#4CAF50", "#FFC107", "#607D8B")
+    // HSV State for Visual Picker
+    val hsv = remember(currentColorHex) {
+        val hsvArr = FloatArray(3)
+        try { android.graphics.Color.colorToHSV(android.graphics.Color.parseColor(currentColorHex), hsvArr) }
+        catch (e: Exception) { hsvArr[0] = 270f; hsvArr[1] = 0.5f; hsvArr[2] = 1f }
+        hsvArr
+    }
 
     Scaffold(
         topBar = {
@@ -66,52 +71,45 @@ fun SettingsScreen(navController: NavController) {
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding).verticalScroll(rememberScrollState()).padding(16.dp)) {
             
-            Text("App Appearance", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            Text("Customize Appearance", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(16.dp))
-            
-            // কাস্টম হেক্স ইনপুট (তোর স্ক্রিনশটের মতো)
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Custom Theme Color (Hex)", fontSize = 14.sp)
-                    Spacer(Modifier.height(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)).background(try { Color(android.graphics.Color.parseColor(currentColorHex)) } catch(e: Exception) { MaterialTheme.colorScheme.primary }))
-                        Spacer(Modifier.width(12.dp))
-                        OutlinedTextField(
-                            value = hexInput,
-                            onValueChange = { 
-                                hexInput = it
-                                if (it.length == 7 && it.startsWith("#")) {
-                                    scope.launch { context.dataStore.edit { prefs -> prefs[colorKey] = it } }
-                                }
-                            },
-                            placeholder = { Text("#RRGGBB") },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            singleLine = true
-                        )
-                    }
+
+            // Visual Hue Slider (ঘুরিয়ে কালার চেঞ্জ করার পার্ট)
+            Text("Pick Color (Hue)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Canvas(modifier = Modifier.fillMaxWidth().height(20.dp).clip(CircleShape).pointerInput(Unit) {
+                detectDragGestures { change, _ ->
+                    val hue = (change.position.x / size.width).coerceIn(0f, 1f) * 360f
+                    val newHex = String.format("#%06X", 0xFFFFFF and android.graphics.Color.HSVToColor(floatArrayOf(hue, hsv[1], hsv[2])))
+                    scope.launch { context.dataStore.edit { it[colorKey] = newHex } }
                 }
+            }) {
+                val colors = List(361) { Color.hsv(it.toFloat(), 1f, 1f) }
+                drawRect(brush = Brush.horizontalGradient(colors))
             }
 
             Spacer(Modifier.height(24.dp))
-            Text("Quick Presets", style = MaterialTheme.typography.labelLarge)
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                presetColors.take(5).forEach { hex ->
-                    Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(hex))).clickable {
-                        hexInput = hex
-                        scope.launch { context.dataStore.edit { it[colorKey] = hex } }
-                    }, contentAlignment = Alignment.Center) {
-                        if (currentColorHex == hex) Icon(Icons.Default.Done, null, tint = Color.White)
-                    }
-                }
-            }
 
-            Spacer(Modifier.height(32.dp))
+            // Hex Code Input
+            OutlinedTextField(
+                value = hexInput,
+                onValueChange = { 
+                    hexInput = it
+                    if (it.length == 7 && it.startsWith("#")) {
+                        scope.launch { context.dataStore.edit { prefs -> prefs[colorKey] = it } }
+                    }
+                },
+                label = { Text("Hex Color Code") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                trailingIcon = { Box(modifier = Modifier.size(24.dp).clip(CircleShape).background(try { Color(android.graphics.Color.parseColor(currentColorHex)) } catch(e: Exception) { Color.Gray })) }
+            )
+
+            Spacer(Modifier.height(24.dp))
             Divider()
             Spacer(Modifier.height(24.dp))
 
+            // Decimal Precision Slider
             Text("Decimal Precision", style = MaterialTheme.typography.titleMedium)
             Slider(value = precision.toFloat(), onValueChange = { scope.launch { context.dataStore.edit { it[precisionKey] = it.toInt() } } }, valueRange = 0f..10f, steps = 9)
             Text("Current: $precision")
