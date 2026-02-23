@@ -1,5 +1,7 @@
 package com.example.premiumcalculator.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,68 +15,73 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.premiumcalculator.viewmodel.HistoryViewModel
+import com.example.premiumcalculator.viewmodel.CalculatorViewModel
+import com.example.premiumcalculator.data.HistoryEntity
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HistoryScreen(navController: NavController) {
-    val viewModel: HistoryViewModel = hiltViewModel()
-    val historyList by viewModel.history
+    val historyViewModel: HistoryViewModel = hiltViewModel()
+    val calcViewModel: CalculatorViewModel = hiltViewModel()
+    val historyList by historyViewModel.history
+    var itemToDelete by remember { mutableStateOf<HistoryEntity?>(null) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Calculation History") },
+                title = { Text("History") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
                 },
                 actions = {
-                    // ไอকন বাদ দিয়ে TextButton ব্যবহার করা হলো যাতে লেখা না কাটে
-                    TextButton(onClick = { viewModel.clearAll() }) {
-                        Text("Clear", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelLarge)
+                    TextButton(onClick = { historyViewModel.clearAll() }) {
+                        Text("Clear All", color = MaterialTheme.colorScheme.error)
                     }
                 }
             )
         }
     ) { padding ->
         if (historyList.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 Text("No calculations yet")
             }
         } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 16.dp)
-            ) {
+            LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
                 items(historyList) { item ->
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                            .combinedClickable(
+                                onClick = { 
+                                    calcViewModel.loadFromHistory(item.expression)
+                                    navController.popBackStack() 
+                                },
+                                onLongClick = { itemToDelete = item }
+                            )
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = item.expression,
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Text(
-                                text = "= ${item.result}",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                            if (item.note.isNotBlank()) {
-                                Text(
-                                    text = "Note: ${item.note}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                            Text(text = item.expression, style = MaterialTheme.typography.titleMedium)
+                            Text(text = "= ${item.result}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
             }
+        }
+
+        if (itemToDelete != null) {
+            AlertDialog(
+                onDismissRequest = { itemToDelete = null },
+                title = { Text("Delete Entry?") },
+                text = { Text("Do you want to delete this specific calculation?") },
+                confirmButton = {
+                    TextButton(onClick = { 
+                        itemToDelete?.let { historyViewModel.deleteItem(it) }
+                        itemToDelete = null 
+                    }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                },
+                dismissButton = { TextButton(onClick = { itemToDelete = null }) { Text("Cancel") } }
+            )
         }
     }
 }

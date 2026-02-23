@@ -19,19 +19,18 @@ class HistoryViewModel @Inject constructor(
     val history: State<List<HistoryEntity>> = _history
 
     init {
-        loadHistory()
+        viewModelScope.launch {
+            repository.allHistory.collect { list ->
+                _history.value = list
+            }
+        }
     }
 
-    private fun loadHistory() {
-        viewModelScope.launch {
-            _history.value = repository.getAll()
-        }
+    fun deleteItem(item: HistoryEntity) {
+        viewModelScope.launch { repository.delete(item) }
     }
 
     fun clearAll() {
-        viewModelScope.launch {
-            repository.clearAll()
-            loadHistory()
-        }
+        viewModelScope.launch { repository.deleteAll() }
     }
 }
