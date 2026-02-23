@@ -23,12 +23,14 @@ import com.example.premiumcalculator.data.HistoryEntity
 fun HistoryScreen(navController: NavController) {
     val historyViewModel: HistoryViewModel = hiltViewModel()
     val calcViewModel: CalculatorViewModel = hiltViewModel()
-    val historyList by historyViewModel.history
+    
+    // এখানে 'by' সরিয়ে সরাসরি ভ্যালু নেওয়া হয়েছে ক্র্যাশ বন্ধ করতে
+    val historyList = historyViewModel.history.value
     var itemToDelete by remember { mutableStateOf<HistoryEntity?>(null) }
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = { Text("History") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
@@ -53,9 +55,10 @@ fun HistoryScreen(navController: NavController) {
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                             .combinedClickable(
-                                onClick = { 
+                                onClick = {
+                                    calcViewModel.onButtonClick("C") // আগে ক্লিয়ার করে নেওয়া সেফ
                                     calcViewModel.loadFromHistory(item.expression)
-                                    navController.popBackStack() 
+                                    navController.popBackStack()
                                 },
                                 onLongClick = { itemToDelete = item }
                             )
@@ -75,9 +78,9 @@ fun HistoryScreen(navController: NavController) {
                 title = { Text("Delete Entry?") },
                 text = { Text("Do you want to delete this specific calculation?") },
                 confirmButton = {
-                    TextButton(onClick = { 
+                    TextButton(onClick = {
                         itemToDelete?.let { historyViewModel.deleteItem(it) }
-                        itemToDelete = null 
+                        itemToDelete = null
                     }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
                 },
                 dismissButton = { TextButton(onClick = { itemToDelete = null }) { Text("Cancel") } }
