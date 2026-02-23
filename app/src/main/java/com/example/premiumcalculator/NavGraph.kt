@@ -22,10 +22,14 @@ fun NavGraph(navController: NavHostController) {
         composable("history") { HistoryScreen(navController) }
         composable("settings") { SettingsScreen(navController) }
         composable("factorial") { FactorialScreen(navController) }
-        composable("factorial") { FactorialScreen(navController) }
-        
-        // নতুন রুটগুলো এখানে যোগ করা হলো (ক্রাশ ফিক্স)
         composable("discount") { DiscountTaxScreen(navController) }
         composable("land") { LandConverterScreen(navController) }
+
+        // নতুন Unit Converter রুটগুলো এখানে যোগ করা হলো
+        composable("unit_converter") { UnitConverterScreen(navController) }
+        composable("converter_detail/{category}") { backStackEntry ->
+            val category = backStackEntry.arguments?.getString("category") ?: "Length"
+            GenericConverterDetailScreen(navController, category)
+        }
     }
 }

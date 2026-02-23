@@ -39,14 +39,13 @@ fun CalculatorScreen(navController: NavController) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
 
-    // Auto-scaling Font Size Logic (Human eye readable limit)
     val previewFontSize = when {
         preview.length <= 7 -> 72.sp
         preview.length <= 10 -> 52.sp
         preview.length <= 14 -> 38.sp
         else -> 28.sp
     }
-    
+
     val expressionFontSize = when {
         expression.length <= 12 -> 42.sp
         expression.length <= 20 -> 32.sp
@@ -64,7 +63,7 @@ fun CalculatorScreen(navController: NavController) {
                     Text("Pro Tools", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                     IconButton(onClick = { scope.launch { sheetState.hide() }; showProTools = false }) { Icon(Icons.Default.Close, "Close") }
                 }
-                Divider()
+                HorizontalDivider()
                 LazyVerticalGrid(columns = GridCells.Fixed(2), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     items(proTools) { tool -> ProToolCard(tool, navController) { showProTools = false } }
                 }
@@ -77,16 +76,16 @@ fun CalculatorScreen(navController: NavController) {
             CenterAlignedTopAppBar(
                 title = { Text("Calculator") },
                 actions = {
-                    // History Button added here!
                     IconButton(onClick = { navController.navigate("history") }) { Icon(Icons.Default.History, "History") }
                     IconButton(onClick = { navController.navigate("settings") }) { Icon(Icons.Default.Settings, "Settings") }
+                    // নতুন Unit Converter বোতাম এখানে যোগ করা হলো!
+                    IconButton(onClick = { navController.navigate("unit_converter") }) { Icon(Icons.Default.SwapHoriz, "Converter") }
                     IconButton(onClick = { showProTools = true }) { Icon(Icons.Default.Widgets, "Pro Tools") }
                 }
             )
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp)) {
-            // Display Area
             Column(modifier = Modifier.weight(2.2f).fillMaxWidth(), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.Bottom) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -112,7 +111,6 @@ fun CalculatorScreen(navController: NavController) {
                 Spacer(Modifier.height(40.dp))
             }
 
-            // Keypad Grid (Fixed, no more jumping)
             LazyVerticalGrid(columns = GridCells.Fixed(4), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.weight(3.8f)) {
                 items(keypadButtons) { btn ->
                     KeypadButton(btn) {
@@ -126,9 +124,6 @@ fun CalculatorScreen(navController: NavController) {
     }
 }
 
-// ────────────────────────────────────────────────
-// ORIGINAL CLEAN 4x5 KEYPAD (ANIMATION REMOVED)
-// ────────────────────────────────────────────────
 private val keypadButtons = listOf(
     KeypadButton("%", "%"), KeypadButton("^", "^"), KeypadButton("√", "√"), KeypadButton("÷", "÷"),
     KeypadButton("7", "7"), KeypadButton("8", "8"), KeypadButton("9", "9"), KeypadButton("×", "×"),
@@ -155,9 +150,6 @@ private fun KeypadButton(btn: KeypadButton, onClick: () -> Unit) {
     }
 }
 
-// ────────────────────────────────────────────────
-// PRO TOOLS (12 items with Factorial, ANIMATION REMOVED)
-// ────────────────────────────────────────────────
 private val proTools = listOf(
     ProTool(Icons.Default.Cake, "Age Calculator", "age"),
     ProTool(Icons.Default.Calculate, "EMI Calculator", "emi"),
