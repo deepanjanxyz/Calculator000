@@ -1,6 +1,7 @@
 package com.example.premiumcalculator.data
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
@@ -18,4 +19,8 @@ interface HistoryDao {
 
     @Query("DELETE FROM history")
     suspend fun clearAll()
+
+    // এই সেই হারানো ডিলিট ফাংশন!
+    @Delete
+    suspend fun delete(history: HistoryEntity)
 }
