@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -51,9 +52,10 @@ fun SettingsScreen(navController: NavController) {
     val theme by context.dataStore.data.map { it[themeKey] ?: "system" }.collectAsState(initial = "system")
     val currentColorHex by context.dataStore.data.map { it[colorKey] ?: "#BB86FC" }.collectAsState(initial = "#BB86FC")
 
+    var hexInput by remember { mutableStateOf(currentColorHex) }
     var showClearDialog by remember { mutableStateOf(false) }
 
-    val presetColors = listOf("#BB86FC", "#03DAC6", "#F44336", "#E91E63", "#2196F3", "#4CAF50", "#FFC107", "#FF5722", "#607D8B")
+    val presetColors = listOf("#BB86FC", "#03DAC6", "#F44336", "#2196F3", "#4CAF50", "#FFC107", "#607D8B")
 
     Scaffold(
         topBar = {
@@ -64,25 +66,54 @@ fun SettingsScreen(navController: NavController) {
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding).verticalScroll(rememberScrollState()).padding(16.dp)) {
             
-            Text("App Theme Color", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(12.dp))
+            Text("App Appearance", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(16.dp))
             
-            // কালার গ্রিড
-            LazyVerticalGrid(columns = GridCells.Fixed(5), modifier = Modifier.height(120.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(presetColors) { hex ->
-                    Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(hex))).clickable {
-                        scope.launch { context.dataStore.edit { it[colorKey] = hex } }
-                    }, contentAlignment = Alignment.Center) {
-                        if (currentColorHex == hex) {
-                            Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(20.dp))
-                        }
+            // কাস্টম হেক্স ইনপুট (তোর স্ক্রিনশটের মতো)
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Custom Theme Color (Hex)", fontSize = 14.sp)
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)).background(try { Color(android.graphics.Color.parseColor(currentColorHex)) } catch(e: Exception) { MaterialTheme.colorScheme.primary }))
+                        Spacer(Modifier.width(12.dp))
+                        OutlinedTextField(
+                            value = hexInput,
+                            onValueChange = { 
+                                hexInput = it
+                                if (it.length == 7 && it.startsWith("#")) {
+                                    scope.launch { context.dataStore.edit { prefs -> prefs[colorKey] = it } }
+                                }
+                            },
+                            placeholder = { Text("#RRGGBB") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true
+                        )
                     }
                 }
             }
 
             Spacer(Modifier.height(24.dp))
+            Text("Quick Presets", style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                presetColors.take(5).forEach { hex ->
+                    Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(hex))).clickable {
+                        hexInput = hex
+                        scope.launch { context.dataStore.edit { it[colorKey] = hex } }
+                    }, contentAlignment = Alignment.Center) {
+                        if (currentColorHex == hex) Icon(Icons.Default.Done, null, tint = Color.White)
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(32.dp))
+            Divider()
+            Spacer(Modifier.height(24.dp))
+
             Text("Decimal Precision", style = MaterialTheme.typography.titleMedium)
-            Slider(value = precision.toFloat(), onValueChange = { scope.launch { context.dataStore.edit { prefs -> prefs[precisionKey] = it.toInt() } } }, valueRange = 0f..10f, steps = 9)
+            Slider(value = precision.toFloat(), onValueChange = { scope.launch { context.dataStore.edit { it[precisionKey] = it.toInt() } } }, valueRange = 0f..10f, steps = 9)
             Text("Current: $precision")
 
             Spacer(Modifier.height(24.dp))
@@ -94,8 +125,21 @@ fun SettingsScreen(navController: NavController) {
             Button(onClick = { showClearDialog = true }, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(24.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
                 Text("Clear All History", fontSize = 16.sp)
             }
-            
-            // ... (Clear History Dialog Logic remains same)
+
+            if (showClearDialog) {
+                AlertDialog(
+                    onDismissRequest = { showClearDialog = false },
+                    title = { Text("Clear History?") },
+                    text = { Text("This will delete all history entries forever.") },
+                    confirmButton = {
+                        TextButton(onClick = { 
+                            historyViewModel.clearAll()
+                            showClearDialog = false 
+                        }) { Text("Confirm", color = MaterialTheme.colorScheme.error) }
+                    },
+                    dismissButton = { TextButton(onClick = { showClearDialog = false }) { Text("Cancel") } }
+                )
+            }
         }
     }
 }
