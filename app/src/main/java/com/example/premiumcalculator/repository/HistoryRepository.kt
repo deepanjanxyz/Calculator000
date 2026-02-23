@@ -5,7 +5,6 @@ import com.example.premiumcalculator.data.HistoryEntity
 import javax.inject.Inject
 
 class HistoryRepository @Inject constructor(private val dao: HistoryDao) {
-
     suspend fun insert(expression: String, result: String, note: String) {
         dao.insert(HistoryEntity(expression = expression, result = result, note = note))
     }
@@ -20,5 +19,10 @@ class HistoryRepository @Inject constructor(private val dao: HistoryDao) {
 
     suspend fun clearAll() {
         dao.clearAll()
+    }
+
+    // এই নতুন ফাংশনটি যোগ করা হলো সিঙ্গেল ডিলিটের জন্য!
+    suspend fun delete(entity: HistoryEntity) {
+        dao.delete(entity)
     }
 }
