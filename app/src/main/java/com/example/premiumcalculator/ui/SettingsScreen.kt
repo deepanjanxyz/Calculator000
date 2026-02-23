@@ -1,5 +1,6 @@
 package com.example.premiumcalculator.ui
 
+import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -17,11 +18,16 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.premiumcalculator.viewmodel.HistoryViewModel
 import kotlinx.coroutines.launch
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.map
+
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,14 +60,38 @@ fun SettingsScreen(navController: NavController) {
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding).verticalScroll(rememberScrollState()).padding(16.dp)) {
             Text("Decimal Precision", style = MaterialTheme.typography.titleMedium)
-            Slider(value = precision.toFloat(), onValueChange = { scope.launch { context.dataStore.edit { it[precisionKey] = it.toInt() } } }, valueRange = 0f..10f, steps = 9)
+            Slider(
+                value = precision.toFloat(),
+                onValueChange = { newValue ->
+                    scope.launch { context.dataStore.edit { prefs -> prefs[precisionKey] = newValue.toInt() } }
+                },
+                valueRange = 0f..10f,
+                steps = 9
+            )
             Text("Current: $precision")
+            
             Spacer(Modifier.height(24.dp))
-            ListItem(headlineContent = { Text("Haptic Feedback") }, trailingContent = {
-                Switch(checked = hapticEnabled, onCheckedChange = { scope.launch { context.dataStore.edit { prefs -> prefs[hapticKey] = it } } })
-            })
+            
+            ListItem(
+                headlineContent = { Text("Haptic Feedback") },
+                trailingContent = {
+                    Switch(
+                        checked = hapticEnabled,
+                        onCheckedChange = { isChecked ->
+                            scope.launch { context.dataStore.edit { prefs -> prefs[hapticKey] = isChecked } }
+                        }
+                    )
+                }
+            )
+            
             Spacer(Modifier.height(32.dp))
-            Button(onClick = { showClearDialog = true }, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(24.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
+            
+            Button(
+                onClick = { showClearDialog = true },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) {
                 Text("Clear All History", fontSize = 16.sp)
             }
 
