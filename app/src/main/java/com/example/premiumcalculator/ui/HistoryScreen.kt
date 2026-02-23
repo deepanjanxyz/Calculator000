@@ -24,9 +24,14 @@ fun HistoryScreen(navController: NavController) {
     val historyViewModel: HistoryViewModel = hiltViewModel()
     val calcViewModel: CalculatorViewModel = hiltViewModel()
     
-    // এখানে 'by' সরিয়ে সরাসরি ভ্যালু নেওয়া হয়েছে ক্র্যাশ বন্ধ করতে
-    val historyList = historyViewModel.history.value
+    // সঠিক পদ্ধতি: 'by' ব্যবহার করা
+    val historyList by historyViewModel.history
     var itemToDelete by remember { mutableStateOf<HistoryEntity?>(null) }
+
+    // স্ক্রিনে ঢোকার সময় লেটেস্ট ডাটা লোড করা
+    LaunchedEffect(Unit) {
+        historyViewModel.loadHistory()
+    }
 
     Scaffold(
         topBar = {
@@ -51,12 +56,11 @@ fun HistoryScreen(navController: NavController) {
             }
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
-                items(historyList) { item ->
+                items(historyList, key = { it.id }) { item -> // 'key' দিলে লিস্ট আপডেট স্মুথ হয়
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                             .combinedClickable(
                                 onClick = {
-                                    calcViewModel.onButtonClick("C") // আগে ক্লিয়ার করে নেওয়া সেফ
                                     calcViewModel.loadFromHistory(item.expression)
                                     navController.popBackStack()
                                 },
